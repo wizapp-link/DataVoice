@@ -1,9 +1,6 @@
-streamlit-mic-recorder
-InstructorEmbedding
-ctransformers
-transformers
-langchain
-streamlit
-pyPDFium2
-librosa
-pyyaml
+flask
+gradio==3.50
+elevenlabs
+pydub
+python-dotenv
+open-interpreter
