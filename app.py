@@ -15,17 +15,19 @@ load_dotenv(dotenv_path='.env.local')
 eleven_labs_api_key = os.getenv("ELEVEN_LABS_API_KEY")
 openai_whisper_model_name = os.getenv("OPENAI_WHISPER_MODEL")
 
-## Open Interpreter
-# interpreter.auto_run = True
+## Open Interpreter Auto-run
+# ***** USE THIS WITH CAUTION!! LLM MIGHT GENERATE UNWANTED COMMANDS TO MESS UP YOUR COMPUTER!!! *****
+interpreter.auto_run = True
 
 # Run with local LLM
-interpreter.offline = True # Disables online features like Open Procedures
-interpreter.llm.model = "ollama_chat/mistral"
-interpreter.llm.api_base = "http://localhost:11434"
+# interpreter.offline = True # Disables online features like Open Procedures
+# interpreter.llm.model = "ollama/dolphin-mixtral"
+# interpreter.llm.api_base = "http://localhost:11434"
 
-# Run with OpenAI GPT-4 (COSTY!)
-# openai_api_key = os.getenv("OPENAI_API_KEY")
-# interpreter.llm.api_key = openai_api_key
+# Run with OpenAI Models (COSTY!)
+openai_api_key = os.getenv("OPENAI_API_KEY")
+interpreter.llm.api_key = openai_api_key
+interpreter.llm.model = "gpt-3.5-turbo"
 
 # TODO: Run with LLM hosted at an API endpoint
 # interpreter.llm.model = "ollama_chat/mistral"
@@ -48,8 +50,6 @@ def transcribe(audio):
     result = whisper.decode(model, mel, options)
     return result.text
 
-### ElevenLabs
-set_api_key(eleven_labs_api_key)
 
 def get_audio_length(audio_bytes):
     byte_io = io.BytesIO(audio_bytes)
@@ -148,6 +148,7 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
+    set_api_key(eleven_labs_api_key)
     model = whisper.load_model(openai_whisper_model_name)
     last_sentence = ""
     demo.queue()
