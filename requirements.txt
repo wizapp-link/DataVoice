@@ -1,6 +1,0 @@
-flask
-gradio==3.50
-elevenlabs
-pydub
-python-dotenv
-open-interpreter
