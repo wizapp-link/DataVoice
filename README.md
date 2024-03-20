@@ -1,7 +1,3 @@
-Certainly! A clear and well-structured README is crucial for helping users understand how to run and use your project effectively. Here's an improved version of your README file:
-
----
-
 # DataVoice: Your Interactive Voice Assistant
 
 DataVoice is an innovative project designed to bridge the gap between you and data analysis through voice commands. Using a blend of AI models and a user-friendly chat interface, DataVoice allows you to navigate and perform actions on your computer with ease.
