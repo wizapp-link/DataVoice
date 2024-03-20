@@ -51,6 +51,7 @@ Before you begin, make sure you have the following installed:
     In both terminals, run the following command to start the respective services:
 
     ```
+    make init
     make run
     ```
 

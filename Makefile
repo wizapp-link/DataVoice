@@ -38,8 +38,18 @@ activate:
 
 # Command to run the application
 run: install
+	@echo "Exporting environment variables from .env.local..."
+	$(eval ELEVEN_LABS_API_KEY=$(shell grep ELEVEN_LABS_API_KEY .env.local | cut -d '=' -f2))
+	$(eval OPENAI_API_KEY=$(shell grep OPENAI_API_KEY .env.local | cut -d '=' -f2))
+	$(eval HUGGINGFACE_API_KEY=$(shell grep HUGGINGFACE_API_KEY .env.local | cut -d '=' -f2))
+	$(eval OPENAI_WHISPER_MODEL=$(shell grep OPENAI_WHISPER_MODEL .env.local | cut -d '=' -f2))
+	@export ELEVEN_LABS_API_KEY=$(ELEVEN_LABS_API_KEY) \
+		OPENAI_API_KEY=$(OPENAI_API_KEY) \
+		HUGGINGFACE_API_KEY=$(HUGGINGFACE_API_KEY) \
+		OPENAI_WHISPER_MODEL=$(OPENAI_WHISPER_MODEL)
 	@echo "Starting server.py with uvicorn..."
 	./$(VENV)/bin/uvicorn server:app --reload --host $(HOST) --port $(PORT)
+
 
 # Clean up command to remove the virtual environment
 clean:
