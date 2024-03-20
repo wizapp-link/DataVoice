@@ -1,2 +1,3 @@
-datavoice_venv
+barebone_demo/datavoice_venv
+barebone_demo/.env.local
 .env.local
