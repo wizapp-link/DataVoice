@@ -6,7 +6,9 @@ import uuid
 import logging
 import os
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
@@ -45,8 +47,24 @@ workdir_path = os.path.join(os.getcwd(), "assistant_workdir")
 # change the current working directory to assistant_workdir
 os.chdir(workdir_path)
 
+app.mount("/static", StaticFiles(directory=workdir_path), name="static")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust this in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Disable open-interpreter's history preserving feature
 interpreter.conversation_history = False
+
+# Add interpreter system message
+interpreter.system_message += """
+To display ANY images in UI, save visualizations as PNG in the 'images' directory. Then, reference them with markdown: ![](http://localhost:8000/static/images/<imageName>.png). Do this directly in PLAIN ASSISTANT TEXT, WITHOUT ANY BLOCK FORMATTING.
+"""
+print(interpreter.system_message)
 
 # Set up logging
 logging.basicConfig(filename='open_interpreter_response.log', level=logging.INFO)
