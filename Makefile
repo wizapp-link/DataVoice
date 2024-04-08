@@ -23,13 +23,16 @@ ffmpeg_install:
 	sudo apt-get install -y ffmpeg
 	@echo "ffmpeg installed."
 
+# Command to install OpenAI Whisper
+openai_whisper_install:
+	@echo "Installing Whisper from GitHub..."
+	./$(VENV)/bin/pip install git+https://github.com/openai/whisper.git
+
 # Command to install dependencies
-install: init ffmpeg_install
+install: init
 	@echo "Installing dependencies..."
 	./$(VENV)/bin/pip install -r requirements.txt
 	# Here include the installation of any other packages not available in PyPI
-	@echo "Installing Whisper from GitHub..."
-	./$(VENV)/bin/pip install git+https://github.com/openai/whisper.git
 	@echo "Dependencies installed."
 
 # Command to activate the virtual environment (Note: This command has limitations in Makefile)
@@ -37,7 +40,7 @@ activate:
 	@echo "To activate the virtual environment, run 'source $(VENV)/bin/activate'"
 
 # Command to run the application
-run: install
+run:
 	@echo "Exporting environment variables from .env.local..."
 	$(eval ELEVEN_LABS_API_KEY=$(shell grep ELEVEN_LABS_API_KEY .env.local | cut -d '=' -f2))
 	$(eval OPENAI_API_KEY=$(shell grep OPENAI_API_KEY .env.local | cut -d '=' -f2))
