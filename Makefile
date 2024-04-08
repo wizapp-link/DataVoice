@@ -58,3 +58,6 @@ run:
 clean:
 	rm -rf $(VENV)
 	@echo "Cleaned up the virtual environment."
+
+
+# Placeholder comment
