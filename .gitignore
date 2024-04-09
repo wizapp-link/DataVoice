@@ -2,3 +2,4 @@ barebone_demo/datavoice_venv
 barebone_demo/.env.local
 datavoice_venv
 .env.local
+chat-ui/**
