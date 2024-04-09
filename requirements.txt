@@ -2,7 +2,6 @@ fastapi
 uvicorn
 python-dotenv
 pydantic
-elevenlabs
 pydub
 python-dotenv
 open-interpreter
