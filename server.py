@@ -10,9 +10,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.staticfiles import StaticFiles
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
+# Define the path to the assistant_workdir sub-folder
+workdir_path = os.path.join(os.getcwd(), "assistant_workdir")
+
+# change the current working directory to assistant_workdir
+os.chdir(workdir_path)
 
 from interpreter import interpreter
 
@@ -24,7 +30,7 @@ class ChatCompletionRequest(BaseModel):
 
 
 # Load the environment variables from .env.local file
-load_dotenv(dotenv_path='.env.local')
+load_dotenv(dotenv_path='../env.local')
 
 # Retrieve config from .env.local
 eleven_labs_api_key = os.getenv("ELEVEN_LABS_API_KEY")
@@ -41,11 +47,7 @@ interpreter.llm.model = "gpt-3.5-turbo"
 interpreter.llm.api_key = openai_api_key
 interpreter.auto_run = True
 
-# Define the path to the assistant_workdir sub-folder
-workdir_path = os.path.join(os.getcwd(), "assistant_workdir")
 
-# change the current working directory to assistant_workdir
-os.chdir(workdir_path)
 
 app.mount("/static", StaticFiles(directory=workdir_path), name="static")
 
@@ -84,6 +86,12 @@ async def chat_completions(request: Request, chat_request: ChatCompletionRequest
                 open_interpreter_messages.append({"role": "user", "content": message["content"]})
             elif message["role"] == "assistant":
                 open_interpreter_messages.append({"role": "assistant", "content": message["content"]})
+                
+        # Fetch the last fetched knowledge content
+        knowledge_content = await get_last_fetched_knowledge_content(workdir_path)
+        # Append the "Knowledge Base" role and content
+        open_interpreter_messages.append({"role": "Knowledge Base", "content": knowledge_content})
+
 
         completion_id = str(uuid.uuid4())
         completion_object = {
@@ -100,7 +108,7 @@ async def chat_completions(request: Request, chat_request: ChatCompletionRequest
                 }
             ],
         }
-
+        
         # Join the open_interpreter_messages into a single string
         open_interpreter_input = "\n".join([f"{msg['role']}: {msg['content']}" for msg in open_interpreter_messages])
 
@@ -129,6 +137,91 @@ async def chat_completions(request: Request, chat_request: ChatCompletionRequest
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+@app.get("/knowledge")
+async def get_knowledge(conversation_id: str = Query(None, alias="conversationId")):
+    if not conversation_id:
+        raise HTTPException(status_code=400, detail="Missing conversationId")
+    
+    knowledge_dir = os.path.join(workdir_path, ".assistant", "knowledge")
+    knowledge_file_path = os.path.join(knowledge_dir, f"{conversation_id}")
+    default_file_path = os.path.join(knowledge_dir, "default")
+    last_fetched_id_path = os.path.join(knowledge_dir, "lastFetchedId")
+
+    # Ensure the knowledge directory exists
+    os.makedirs(knowledge_dir, exist_ok=True)
+
+    try:
+        try:
+            # Try to open the specified conversationId file
+            with open(knowledge_file_path, "r") as file:
+                content = file.read()
+        except FileNotFoundError:
+            # If the file does not exist, create it with content from the default file
+            with open(default_file_path, "r") as default_file:
+                default_content = default_file.read()
+            with open(knowledge_file_path, "w") as new_file:
+                new_file.write(default_content)
+            content = default_content
+        
+        # Update lastFetchedId with the current conversation_id
+        with open(last_fetched_id_path, "w") as last_fetched_file:
+            last_fetched_file.write(conversation_id)
+
+        return {"content": content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    
+@app.post("/knowledge")
+async def save_knowledge(request: Request):
+    data = await request.json()
+    
+    # Extract conversationID and content from the request
+    conversation_id = data.get("conversationId")
+    content = data.get("content")
+    
+    if not conversation_id or content is None:
+        raise HTTPException(status_code=400, detail="Missing conversationID or content in the request body")
+    
+    # Define the directory and file path based on conversationID
+    knowledge_dir = os.path.join(workdir_path, ".assistant", "knowledge")
+    file_path = os.path.join(knowledge_dir, f"{conversation_id}")
+    
+    # Ensure the directory exists
+    os.makedirs(knowledge_dir, exist_ok=True)
+    
+    # Write content to the file
+    try:
+        with open(file_path, "w") as file:
+            file.write(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    return {"status": "success", "message": f"Content saved for conversationID: {conversation_id}"}
+
+
+async def get_last_fetched_knowledge_content(workdir_path: str) -> str:
+    knowledge_dir = os.path.join(workdir_path, ".assistant", "knowledge")
+    last_fetched_id_path = os.path.join(knowledge_dir, "lastFetchedId")
+    
+    # Read the last fetched ID
+    try:
+        with open(last_fetched_id_path, "r") as file:
+            last_fetched_id = file.read().strip()
+    except FileNotFoundError:
+        knowledge_content = ""
+    
+    # Fetch the knowledge content for the last fetched ID
+    knowledge_file_path = os.path.join(knowledge_dir, last_fetched_id)
+    try:
+        with open(knowledge_file_path, "r") as file:
+            knowledge_content = file.read()
+    except FileNotFoundError:
+        knowledge_content = ""  # Consider a default behavior if the knowledge file doesn't exist
+    
+    return knowledge_content
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
