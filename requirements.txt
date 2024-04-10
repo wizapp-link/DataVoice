@@ -4,6 +4,7 @@ python-dotenv
 pydantic
 pydub
 python-dotenv
+python-multipart
 open-interpreter
 pandas
 pyspark

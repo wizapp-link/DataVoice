@@ -10,9 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.staticfiles import StaticFiles
 import uvicorn
-from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, HTTPException, Query, Request, File, UploadFile
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
+import shutil
+from pathlib import Path
 
 # Define the path to the assistant_workdir sub-folder
 workdir_path = os.path.join(os.getcwd(), "assistant_workdir")
@@ -89,8 +91,13 @@ async def chat_completions(request: Request, chat_request: ChatCompletionRequest
                 
         # Fetch the last fetched knowledge content
         knowledge_content = await get_last_fetched_knowledge_content(workdir_path)
-        # Append the "Knowledge Base" role and content
-        open_interpreter_messages.append({"role": "Knowledge Base", "content": knowledge_content})
+        # # Append the "Knowledge Base" role and content
+        # open_interpreter_messages.append({"role": "Some Facts", "content": knowledge_content})
+        # Calculate the insertion index for second last position
+        insertion_index = len(open_interpreter_messages) - 1
+        # Insert the "Knowledge Base" role and content at the second last index
+        open_interpreter_messages.insert(insertion_index, {"role": "User Hints", "content": knowledge_content})
+
 
 
         completion_id = str(uuid.uuid4())
@@ -221,6 +228,23 @@ async def get_last_fetched_knowledge_content(workdir_path: str) -> str:
         knowledge_content = ""  # Consider a default behavior if the knowledge file doesn't exist
     
     return knowledge_content
+
+
+ALLOWED_EXTENSIONS = {'.csv', '.xlsx', '.json', '.txt', '.parquet'}
+
+@app.post("/upload-file/")
+async def upload_file(file: UploadFile = File(...)):
+    upload_dir = Path(workdir_path)
+    
+    if any(file.filename.endswith(ext) for ext in ALLOWED_EXTENSIONS):
+        file_location = upload_dir / file.filename
+        with file_location.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    else:
+        return JSONResponse(status_code=400, content={"message": "File type not allowed, we accept '.csv', '.xlsx', '.json', '.txt', '.parquet' files."})
+
+    return JSONResponse(status_code=200, content={"message": f"File '{file.filename}' uploaded successfully."})
+
 
 
 if __name__ == "__main__":
