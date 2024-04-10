@@ -7,3 +7,5 @@ python-dotenv
 open-interpreter
 pandas
 pyspark
+seaborn
+matplotlib
